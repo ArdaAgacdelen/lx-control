@@ -162,7 +162,7 @@ class PIDControllerNode(DTROS):
         # We are calling theta the heading here (not the normal psi)
         self.theta_curr = euler[2]
 
-        # run the contoller only in appropriate activities
+        # run the controller only in appropriate activities
         if self.PID_HEADING or self.PID_OFFSET:
             self.Controller()
 

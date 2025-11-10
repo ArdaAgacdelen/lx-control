@@ -148,7 +148,7 @@ You can build your code with
 dts code build -R ROBOT_NAME
 ```
 
-This will build a docker image with your code compiled inside - you should your ROS node get built during the process. 
+This will build a docker image with your code compiled inside - you should see your ROS node get built during the process. 
 
 
 
