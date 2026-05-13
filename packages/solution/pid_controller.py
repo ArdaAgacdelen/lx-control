@@ -9,7 +9,7 @@ class PIDController():
         # We will initialize some variables that might be useful
         self.prev_e_heading = 0.0
         self.prev_e_offset = 0.0
-        self.prev_int_heading = 0.0
+        self.prev_int_heading = []
         self.prev_int_offset = 0.0
 
         self.kp = 0.0
@@ -43,22 +43,27 @@ class PIDController():
         # self.prev_e_heading the previous error. But note that you
         # should be the one to update them also.
 
-        error = theta_ref - theta_curr
+        integral_sum_length = 5
 
-        proportional = self.kp * error 
+        theta_ref = (theta_ref + np.pi) % (2 * np.pi) - np.pi    # modulo such that heading is -pi to +pi
+        theta_curr = (theta_curr + np.pi) % (2 * np.pi) - np.pi
+        omega_error = (theta_ref - theta_curr + np.pi) % (2 * np.pi) - np.pi      # wrap the error such that it knows the shortest path to the goal angle  
+        omega_integral_current =  delta_t*omega_error
+        self.prev_int_heading.append(  omega_integral_current  ) 
+        delta_e = (omega_error - self.prev_e_heading)/delta_t
 
-        derivative = self.kd * (error - self.prev_e_heading)/delta_t 
-
-        cur_int_heading = (self.prev_int_heading + error * delta_t)
-        integral = self.ki * cur_int_heading * 0
-    
-
+        int_sum = np.sum(np.array(self.prev_int_heading)[-integral_sum_length:] )
+        omega = self.kp*omega_error +self.ki* ( int_sum )  + self.kd*delta_e
+        self.prev_e_heading = omega_error
         v = v_ref
-        omega = proportional + derivative + integral
-
-        self.prev_e_heading = error
-        self.prev_int_heading = cur_int_heading
-
+        print(
+            f"{theta_ref=:.2f}  "
+            f"{omega_error=:.2f}  "
+            f"{int_sum=:.2f}  "
+            f"{omega_integral_current=:.2f}  "
+            f"{delta_e=:.2f}  "
+            f"{omega=:.2f}"
+        )
         return v, omega
 
     def OffsetControl(self,
@@ -87,23 +92,18 @@ class PIDController():
         # self.prev_e_offset the previous error. But note that you
         # should be the one to update them also.
 
+        y_error = y_ref - y_curr
+        y_integral = self.prev_int_offset + delta_t*y_error
+        delta_e = (y_error - self.prev_e_offset)/delta_t
+
+        omega = self.kp*y_error +self.ki*y_integral + self.kd*delta_e
+        self.prev_int_offset = y_integral
+        self.prev_e_offset = y_error
         v = v_ref
-        
-        error = v_ref - y_curr
-
-        proportional = self.kp * error 
-
-        derivative = self.kd * (error - self.prev_e_offset)/delta_t *0
-
-        cur_int_offset = (self.prev_int_offset + error * delta_t)
-        integral = self.ki * cur_int_offset * 0
-    
-        omega = proportional + derivative + integral
-
-        self.prev_e_offset = error
-        self.prev_int_offset = cur_int_offset
-
+        #omega = np.random.uniform(-8.0, 8.0)
         return v, omega
+
+
 
     def SetGains(self, kp: float, ki: float, kd: float) -> None:
         # Set the PID gains
